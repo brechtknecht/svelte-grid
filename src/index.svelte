@@ -1,29 +1,33 @@
 <style>
-  .svlt-grid-container {
+   .svlt-grid-container {
     position: relative;
-    width: 100%;
+    overflow-y: auto; /* Enable vertical scrolling */
+    display: flex; /* Ensure items are laid out vertically */
+    flex-direction: column; /* Align items in a column for horizontal scrolling */
+    flex-wrap: nowrap; /* Prevent items from wrapping to the next row */
+    height: 100vh;
   }
 </style>
 
-<div class="svlt-grid-container" style="height: {containerHeight}px" bind:this={container}>
+<div class="svlt-grid-container" style:width={"8000px"} bind:this={container}>
   {#if xPerPx || !fastStart}
     {#each items as item, i (item.id)}
       <MoveResize
         on:repaint={handleRepaint}
         on:pointerup={pointerup}
         id={item.id}
-        resizable={item[getComputedCols] && item[getComputedCols].resizable}
-        draggable={item[getComputedCols] && item[getComputedCols].draggable}
+        resizable={item[getComputedRows] && item[getComputedRows].resizable}
+        draggable={item[getComputedRows] && item[getComputedRows].draggable}
         {xPerPx}
         {yPerPx}
-        width={Math.min(getComputedCols, item[getComputedCols] && item[getComputedCols].w) * xPerPx - gapX * 2}
-        height={(item[getComputedCols] && item[getComputedCols].h) * yPerPx - gapY * 2}
-        top={(item[getComputedCols] && item[getComputedCols].y) * yPerPx + gapY}
-        left={(item[getComputedCols] && item[getComputedCols].x) * xPerPx + gapX}
-        item={item[getComputedCols]}
-        min={item[getComputedCols] && item[getComputedCols].min}
-        max={item[getComputedCols] && item[getComputedCols].max}
-        cols={getComputedCols}
+        width={(item[getComputedRows] && item[getComputedRows].w) * xPerPx - gapX * 2}
+        height={Math.min(getComputedRows, item[getComputedRows] && item[getComputedRows].h) * yPerPx - gapY * 2}
+        left={(item[getComputedRows] && item[getComputedRows].x) * xPerPx + gapX}
+        top={(item[getComputedRows] && item[getComputedRows].y) * yPerPx + gapY}
+        item={item[getComputedRows]}
+        min={item[getComputedRows] && item[getComputedRows].min}
+        max={item[getComputedRows] && item[getComputedRows].max}
+        rows={getComputedRows}
         {gapX}
         {gapY}
         {sensor}
@@ -31,19 +35,26 @@
         nativeContainer={container}
         let:resizePointerDown
         let:movePointerDown>
-        {#if item[getComputedCols]}
-          <slot {movePointerDown} {resizePointerDown} dataItem={item} item={item[getComputedCols]} index={i} />
+        {#if item[getComputedRows]}
+          <slot {movePointerDown} {resizePointerDown} dataItem={item} item={item[getComputedRows]} index={i} />
         {/if}
       </MoveResize>
     {/each}
   {/if}
 </div>
 
+
 <script>
-  import { getContainerHeight } from "./utils/container.js";
-  import { moveItemsAroundItem, moveItem, getItemById, specifyUndefinedColumns, findFreeSpaceForItem } from "./utils/item.js";
+  import { getContainerWidth } from "./utils/container.js"; // Ensure this utility is created for calculating width
+  import {
+    moveItemsAroundItem,
+    moveItem,
+    getItemById,
+    specifyUndefinedRows, // This needs to be implemented based on horizontal layout
+    findFreeSpaceForItem,
+  } from "./utils/item.js";
   import { onMount, createEventDispatcher } from "svelte";
-  import { getColumn, getRowsCount, throttle } from "./utils/other.js";
+  import { getRow, getColsCount, throttle } from "./utils/other.js"; // Ensure getRow and getColumnsCount are adapted for horizontal
   import { makeMatrixFromItems } from "./utils/matrix.js";
   import MoveResize from "./MoveResize/index.svelte";
 
@@ -52,7 +63,7 @@
   export let fillSpace = false;
   export let items;
   export let rowHeight;
-  export let cols;
+  export let rows;
   export let gap = [10, 10];
   export let fastStart = false;
   export let throttleUpdate = 100;
@@ -61,62 +72,58 @@
   export let scroller = undefined;
   export let sensor = 20;
 
-  let getComputedCols;
+  let getComputedRows;
 
   let container;
 
   $: [gapX, gapY] = gap;
 
-  let xPerPx = 0;
-  let yPerPx = rowHeight;
+  let xPerPx = rowHeight;
+  let yPerPx = 0;
 
-  let documentWidth;
+  let containerHeight;
 
   let containerWidth;
-
-  $: containerHeight = getContainerHeight(items, yPerPx, getComputedCols);
+  $: containerWidth = getContainerWidth(items, xPerPx, getComputedRows); // Calculate the container's width based on items
 
   const pointerup = (ev) => {
-    dispatch("pointerup", {
-      id: ev.detail.id,
-      cols: getComputedCols,
-    });
+    dispatch("pointerup", { id: ev.detail.id, rows: getComputedRows });
   };
 
   const onResize = throttle(() => {
-    items = specifyUndefinedColumns(items, getComputedCols, cols);
+    items = specifyUndefinedRows(items, getComputedRows, rows); // Adjust for horizontal layout
     dispatch("resize", {
-      cols: getComputedCols,
+      rows: getComputedRows,
       xPerPx,
       yPerPx,
-      width: containerWidth,
+      height: containerHeight,
     });
   }, throttleUpdate);
 
   onMount(() => {
     const sizeObserver = new ResizeObserver((entries) => {
       requestAnimationFrame(() => {
-        let width = entries[0].contentRect.width;
+        let height = entries[0].contentRect.height;
 
-        if (width === containerWidth) return;
+        if (height === containerHeight) return;
 
-        getComputedCols = getColumn(width, cols);
+        getComputedRows = getRow(height, rows); // Adjust for the horizontal layout
 
-        xPerPx = width / getComputedCols;
+        yPerPx = height / getComputedRows;
 
-        if (!containerWidth) {
-          items = specifyUndefinedColumns(items, getComputedCols, cols);
+        if (!containerHeight) {
+          items = specifyUndefinedRows(items, getComputedRows, rows);
 
           dispatch("mount", {
-            cols: getComputedCols,
+            rows: getComputedRows,
             xPerPx,
-            yPerPx, // same as rowHeight
+            yPerPx,
           });
         } else {
           onResize();
         }
 
-        containerWidth = width;
+        containerHeight = height;
       });
     });
 
@@ -131,16 +138,16 @@
     if (activeItem) {
       activeItem = {
         ...activeItem,
-        [getComputedCols]: {
-          ...activeItem[getComputedCols],
+        [getComputedRows]: {
+          ...activeItem[getComputedRows],
           ...detail.shadow,
         },
       };
 
       if (fillSpace) {
-        items = moveItemsAroundItem(activeItem, items, getComputedCols, getItemById(detail.id, items));
+        items = moveItemsAroundItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
       } else {
-        items = moveItem(activeItem, items, getComputedCols, getItemById(detail.id, items));
+        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
       }
 
       if (detail.onUpdate) detail.onUpdate();
@@ -148,7 +155,7 @@
       dispatch("change", {
         unsafeItem: activeItem,
         id: activeItem.id,
-        cols: getComputedCols,
+        rows: getComputedRows,
       });
     }
   };

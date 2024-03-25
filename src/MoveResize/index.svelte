@@ -101,7 +101,8 @@
   export let max;
   export let min;
 
-  export let cols;
+  // export let cols;
+  export let rows;
 
   export let nativeContainer;
 
@@ -156,7 +157,7 @@
   };
 
   // Autoscroll
-  let _scrollTop = 0;
+  let _scrollLeft = 0;
   let containerFrame;
   let rect;
   let scrollElement;
@@ -192,7 +193,7 @@
 
     active = true;
     trans = false;
-    _scrollTop = scrollElement.scrollTop;
+    _scrollLeft = scrollElement.scrollLeft;
 
     window.addEventListener("pointermove", pointermove);
     window.addEventListener("pointerup", pointerup);
@@ -210,23 +211,24 @@
   };
 
   const update = () => {
-    const _newScrollTop = scrollElement.scrollTop - _scrollTop;
+    const _newScrollLeft = scrollElement.scrollLeft - _scrollLeft; // Changed from scrollLeft to scrollTop
 
-    const boundX = capturePos.x + cordDiff.x;
-    const boundY = capturePos.y + (cordDiff.y + _newScrollTop);
+    const boundX = capturePos.x + cordDiff.x + _newScrollLeft; // Adjust if necessary for horizontal movement
+    const boundY = capturePos.y + cordDiff.y;
 
-    let gridX = Math.round(boundX / xPerPx);
+    let gridX = Math.round(boundX / xPerPx); // Keep or adjust based on your layout needs
     let gridY = Math.round(boundY / yPerPx);
 
-    shadow.x = Math.max(Math.min(gridX, cols - shadow.w), 0);
-    shadow.y = Math.max(gridY, 0);
+    shadow.x = Math.max(gridX, 0); // Keep or adjust as needed
+    shadow.y = Math.max(Math.min(gridY, rows - shadow.h), 0); // Changed to focus on vertical boundaries
 
-    if (max.y) {
-      shadow.y = Math.min(shadow.y, max.y);
+    if (max.x) {
+      shadow.x = Math.min(shadow.x, max.x); // Adjust if there's a maximum horizontal position
     }
 
     repaint();
   };
+
 
   const pointermove = (event) => {
     event.preventDefault();
@@ -252,7 +254,7 @@
         // Start scrolling
         // TODO Use requestAnimationFrame
         intervalId = setInterval(() => {
-          scrollElement.scrollTop += 2 * (vel.y + Math.sign(vel.y)) * sign.y;
+          scrollElement.scrollLeft += 2 * (vel.y + Math.sign(vel.y)) * sign.y;
           update();
         }, 10);
       }
@@ -300,27 +302,26 @@
   };
 
   const resizePointerMove = ({ pageX, pageY }) => {
-    newSize.width = initSize.width + pageX - resizeInitPos.x;
+    newSize.width = initSize.width + pageX - resizeInitPos.x; // Keep if horizontal resizing is still relevant
     newSize.height = initSize.height + pageY - resizeInitPos.y;
 
-    // Get max col number
-    let maxWidth = cols - shadow.x;
-    maxWidth = Math.min(max.w, maxWidth) || maxWidth;
+    // Adjust for row height limitations
+    let maxHeight = rows - shadow.y; // Calculating the maximum height based on row span
+    maxHeight = Math.min(max.h, maxHeight) || maxHeight; // Apply maximum height if specified
 
-    // Limit bound
-    newSize.width = Math.max(Math.min(newSize.width, maxWidth * xPerPx - gapX * 2), min.w * xPerPx - gapX * 2);
+    // Limit width as necessary (if horizontal adjustments are still relevant)
+    newSize.width = Math.max(newSize.width, min.w * xPerPx - gapX * 2); // Keep if applicable
 
-    newSize.height = Math.max(newSize.height, min.h * yPerPx - gapY * 2);
+    // Limit height
+    newSize.height = Math.max(Math.min(newSize.height, maxHeight * yPerPx - gapY * 2), min.h * yPerPx - gapY * 2);
 
-    if (max.h) {
-      newSize.height = Math.min(newSize.height, max.h * yPerPx - gapY * 2);
-    }
-    // Limit col & row
-    shadow.w = Math.round((newSize.width + gapX * 2) / xPerPx);
+    // Recalculate the item's column and row span based on new size
+    shadow.w = Math.round((newSize.width + gapX * 2) / xPerPx); // Keep if horizontal span is relevant
     shadow.h = Math.round((newSize.height + gapY * 2) / yPerPx);
 
     repaint();
   };
+
 
   const resizePointerUp = (e) => {
     e.stopPropagation();

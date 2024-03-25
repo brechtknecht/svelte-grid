@@ -1,5 +1,5 @@
 import { makeMatrix, makeMatrixFromItemsIgnore, findCloseBlocks, findItemsById, makeMatrixFromItems } from "./matrix.js";
-import { getRowsCount } from "./other.js";
+import { getColsCount, getRowsCount } from "./other.js";
 
 export function getItemById(id, items) {
   return items.find((value) => value.id === id);
@@ -193,6 +193,18 @@ export function getClosestColumn(items, item, col, breakpoints) {
     });
 }
 
+export function getClosestRow(items, item, row, breakpoints) {
+  return breakpoints
+    .map(([_, rowDefinition]) => item[rowDefinition] && rowDefinition)
+    .filter(Boolean)
+    .reduce(function (acc, value) {
+      const isLower = Math.abs(value - row) < Math.abs(acc - row);
+
+      return isLower ? value : acc;
+    });
+}
+
+
 export function specifyUndefinedColumns(items, col, breakpoints) {
   let matrix = makeMatrixFromItems(items, getRowsCount(items, col), col);
 
@@ -221,3 +233,39 @@ export function specifyUndefinedColumns(items, col, breakpoints) {
   });
   return newItems;
 }
+
+
+export function specifyUndefinedRows(items, row, breakpoints) {
+  // Assuming makeMatrixFromItems and other utility functions are adapted for horizontal layouts
+  let matrix = makeMatrixFromItems(items, row, getColsCount(items, row));
+
+  const getUndefinedElements = getUndefinedItems(items, row, breakpoints);
+
+  let newItems = [...items];
+
+  getUndefinedElements.forEach((elementId) => {
+    const getElement = items.find((item) => item.id === elementId);
+
+    // getClosestRow should be a function that determines the closest row for an item, similar to getClosestColumn
+    const closestRow = getClosestRow(items, getElement, row, breakpoints);
+
+    // findFreeSpaceForItem needs to be adapted to find space in a row context
+    const position = findFreeSpaceForItem(matrix, getElement[closestRow], row);
+
+    const newItem = {
+      ...getElement,
+      [row]: {
+        ...getElement[closestRow],
+        ...position,
+      },
+    };
+
+    newItems = newItems.map((item) => (item.id === elementId ? newItem : item));
+
+    // Rebuild the matrix after updating each item to ensure the free space calculation accounts for newly placed items
+    matrix = makeMatrixFromItems(newItems, row, getColsCount(newItems, row));
+  });
+
+  return newItems;
+}
+

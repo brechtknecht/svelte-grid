@@ -221,7 +221,7 @@ on:pointerup | `Function<void>` | The event is fired when a pointer is no longer
 fastStart | `Boolean` | Removes transition onload | No
 fillSpace | `Boolean` | Each grid element (except active element) finds its own position.
 sensor | `Number` | Set the distance from the cursor to the edge | No
-scroller | `Element` | Element reference for setting `Element.scrollTop`. The default is `document.documentElement` | No
+scroller | `Element` | Element reference for setting `Element.scrollLeft`. The default is `document.documentElement` | No
 </div>
 
 Have questions ? 

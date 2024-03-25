@@ -19,6 +19,16 @@ export function getRowsCount(items, cols) {
   return Math.max(...getItemsMaxHeight, 1);
 }
 
+export function getColsCount(items, rows) {
+  const getItemsMaxWidth = items.map((val) => {
+    const item = val[rows];
+
+    return (item && item.x) + (item && item.w) || 0;
+  });
+
+  return Math.max(...getItemsMaxWidth, 1);
+}
+
 export const getColumn = (containerWidth, columns) => {
   const sortColumns = columns.slice().sort((a, b) => a[0] - b[0]);
 
@@ -31,5 +41,20 @@ export const getColumn = (containerWidth, columns) => {
     return breakpoint[1];
   } else {
     return sortColumns[sortColumns.length - 1][1];
+  }
+};
+
+
+export const getRow = (containerHeight, rows) => {
+  const sortRows = rows.slice().sort((a, b) => a[0] - b[0]);
+
+  const breakpoint = sortRows.find(([height]) => {
+    return containerHeight <= height;
+  });
+
+  if (breakpoint) {
+    return breakpoint[1];
+  } else {
+    return sortRows[sortRows.length - 1][1];
   }
 };
