@@ -55,6 +55,7 @@
     specifyUndefinedRows, // This needs to be implemented based on horizontal layout
     findFreeSpaceForItem,
     placeItems,
+    resetAllClosestEdges,
   } from "./utils/item.js";
   import { onMount, createEventDispatcher } from "svelte";
   import { writable } from 'svelte/store';
@@ -193,12 +194,6 @@
       console.log("NEWITEMS", items)
 
       if (detail.onUpdate) detail.onUpdate();
-
-      dispatch("change", {
-        unsafeItem: activeItem,
-        id: activeItem.id,
-        rows: getComputedRows,
-      });
     }
   };
 </script>

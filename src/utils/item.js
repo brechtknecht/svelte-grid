@@ -278,14 +278,18 @@ export function findClosestEdge(draggedItem, closeObj) {
   return { closestEdgeType, closestEdgeElementId, closestEdgeDistance };
 }
 
-export function resetAllClosestEdges(items) {
+export function resetAllClosestEdges(items, cols) {
   // Iterate over each item and reset its closestEdge info
   items.forEach(item => {
-      if(item.closestEdge) {
-          item.closestEdge = null;
+    item = item[cols]
+
+    if(item.closestEdge || item.providesClosestEdge) {
+      item.closestEdge = null;
           item.providesClosestEdge = null
       }
   });
+
+  return items
 }
 
 
@@ -446,38 +450,49 @@ export function specifyUndefinedRows(items, row, breakpoints) {
 
 export function placeItems(active, items, cols) {
   // Get current item from the breakpoint
-  let item = active[cols]
+  let item = active[cols];
   let closestEdge = item.closestEdge;
-  let edgeProvider
 
-  if(closestEdge) {
-     edgeProvider = getItemById(closestEdge.elementId, items)[cols];
-     console.log("edgeprovider", edgeProvider)
+  if (closestEdge) {
+      let edgeProvider = getItemById(closestEdge.elementId, items)[cols];
+      console.log("edgeprovider", edgeProvider);
 
-    if(closestEdge.type === 'left') {
-        item.x = edgeProvider.x - item.w,
-        item.y = edgeProvider.y, 
-        item.w = edgeProvider.w, 
-        item.h = edgeProvider.h
-    }
+      // Adjust item's position and dimensions based on the closest edge
+      switch (closestEdge.type) {
+          case 'left':
+              item.x = edgeProvider.x - item.w;
+              item.y = edgeProvider.y;
+              item.h = edgeProvider.h; // Adjust height to match edge provider
+              break;
+          case 'right':
+              item.x = edgeProvider.x + edgeProvider.w;
+              item.y = edgeProvider.y;
+              item.h = edgeProvider.h; // Adjust height to match edge provider
+              break;
+          case 'top':
+              item.x = edgeProvider.x;
+              item.y = edgeProvider.y - item.h;
+              item.w = edgeProvider.w; // Adjust width to match edge provider
+              break;
+          case 'bottom':
+              item.x = edgeProvider.x;
+              item.y = edgeProvider.y + edgeProvider.h;
+              item.w = edgeProvider.w; // Adjust width to match edge provider
+              break;
+          default:
+              console.log('Unknown edge type:', closestEdge.type);
+      }
 
-    console.log("Position of Provider", {
-      x: edgeProvider.x, 
-      y: edgeProvider.y, 
-      w: edgeProvider.w, 
-      h: edgeProvider.h
-    })
 
-    console.log("Position of New Item", {
-      x: item.x, 
-      y: item.y, 
-      w: item.w, 
-      h: item.h
-    })
+      
+      // Update the item in the items array
+      items = updateItem(items, active, item, cols);
+      
+      items = resetAllClosestEdges(items, cols)
 
-    items = updateItem(items, active, item, cols);
+      console.log("RETURNED ITEMS:", items)
   }
 
-  // Return result
+  // Return the updated items array
   return items;
 }
