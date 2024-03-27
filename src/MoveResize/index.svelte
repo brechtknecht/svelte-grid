@@ -60,6 +60,14 @@
     border: 1px dashed green;
     border-radius: 8px;
   }
+
+  .svlt-grid-item-top-edge {
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    background: green;
+    z-index: 1;
+  }
 </style>
 
 <div
@@ -79,6 +87,21 @@
 {#if active || trans}
   <div class="svlt-grid-shadow shadow-active" style="width: {shadow.w * xPerPx - gapX * 2}px; height: {shadow.h * yPerPx - gapY * 2}px; transform: translate({shadow.x * xPerPx + gapX}px, {shadow.y * yPerPx + gapY}px); " bind:this={shadowElement} />
 {/if}
+
+{#if item && item.providesClosestEdge}
+  <div class="svlt-grid-item-top-edge" style="
+    width: {active ? newSize.width : width}px;
+    height: {active ? newSize.height : height}px;
+    {active ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px); top:${rect.top}px; left:${rect.left}px;` : 
+      trans ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px); position:absolute; transition: width 0.2s, height 0.2s;` : 
+      `transition: transform 0.2s, opacity 0.2s; transform: translate(${left}px, ${top}px);`}
+  ">
+    <!-- Displaying the entire item object -->
+    <pre>{JSON.stringify(item, null, 2)}</pre>
+  </div>
+{/if}
+
+
 
 <script>
   import { createEventDispatcher } from "svelte";
@@ -324,7 +347,7 @@
     newSize.height = Math.max(Math.min(newSize.height, maxHeight * yPerPx - gapY * 2), min.h * yPerPx - gapY * 2);
 
     // Recalculate the item's column and row span based on new size
-    shadow.w = Math.round((newSize.width + gapX * 2) / xPerPx); // Keep if horizontal span is relevant
+    shadow.w = Math.round((newSize.width + gapX * 2) / xPerPx); // Keep if horizontal span is relevant  
     shadow.h = Math.round((newSize.height + gapY * 2) / yPerPx);
 
     repaint();

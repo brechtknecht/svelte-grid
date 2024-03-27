@@ -134,8 +134,6 @@ export function moveItem(active, items, cols, original, $commandKeyDown, detail)
   const EDGE_DISTANCE_THRESHOLD = 2;
   // Get current item from the breakpoint
   let item = getItem(active, cols);
-
-  console.log("items", items)
   
   // Set position and size to the fixed fullscreen size
   if ($commandKeyDown) {
@@ -184,6 +182,12 @@ export function moveItem(active, items, cols, original, $commandKeyDown, detail)
   // No need to return closest edge info separately; it's now part of the items
   return items;
 }
+
+export function placeItems(items) {
+  let cols = 6
+  console.log("entered", items)
+}
+
 
 export function updateItemWithClosestEdge(items, updatedItemInfo, closestEdgeInfo) {
   return items.map(item => {

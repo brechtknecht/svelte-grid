@@ -54,6 +54,7 @@
     getItemById,
     specifyUndefinedRows, // This needs to be implemented based on horizontal layout
     findFreeSpaceForItem,
+    placeItems,
   } from "./utils/item.js";
   import { onMount, createEventDispatcher } from "svelte";
   import { writable } from 'svelte/store';
@@ -186,6 +187,7 @@
     if (!detail.isPointerUp) {
       throttleMatrix({ detail });
     } else {
+      placeItems(items)
       updateMatrix({ detail });
     }
   };
