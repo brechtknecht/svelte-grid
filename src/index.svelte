@@ -9,6 +9,8 @@
   }
 </style>
 
+<svelte:window on:keydown|preventDefault={handleKeyDown} on:keyup|preventDefault={handleKeyUp} />
+
 <div class="svlt-grid-container" style:width={"8000px"} bind:this={container}>
   {#if xPerPx || !fastStart}
     {#each items as item, i (item.id)}
@@ -54,6 +56,7 @@
     findFreeSpaceForItem,
   } from "./utils/item.js";
   import { onMount, createEventDispatcher } from "svelte";
+  import { writable } from 'svelte/store';
   import { getRow, getColsCount, throttle } from "./utils/other.js"; // Ensure getRow and getColumnsCount are adapted for horizontal
   import { makeMatrixFromItems } from "./utils/matrix.js";
   import MoveResize from "./MoveResize/index.svelte";
@@ -75,6 +78,14 @@
   let getComputedRows;
 
   let container;
+  const commandKeyDown = writable(false)
+
+  $: if ($commandKeyDown) {
+    console.log('Command key is down');
+  } else {
+    console.log('Command key is not down');
+  }
+
 
   $: [gapX, gapY] = gap;
 
@@ -99,6 +110,14 @@
       height: containerHeight,
     });
   }, throttleUpdate);
+
+  const handleKeyDown = (e) => {
+    commandKeyDown.set(e.metaKey)
+  }
+
+  const handleKeyUp = (e) => {
+    commandKeyDown.set(false)
+  }
 
   onMount(() => {
     const sizeObserver = new ResizeObserver((entries) => {
@@ -147,7 +166,7 @@
       if (fillSpace) {
         items = moveItemsAroundItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
       } else {
-        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
+        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items), $commandKeyDown, detail);
       }
 
       if (detail.onUpdate) detail.onUpdate();
