@@ -187,8 +187,18 @@
     if (!detail.isPointerUp) {
       throttleMatrix({ detail });
     } else {
-      placeItems(items)
-      updateMatrix({ detail });
+      let activeItem = getItemById(detail.id, items);
+      items = placeItems(activeItem, items, 6)
+
+      console.log("NEWITEMS", items)
+
+      if (detail.onUpdate) detail.onUpdate();
+
+      dispatch("change", {
+        unsafeItem: activeItem,
+        id: activeItem.id,
+        rows: getComputedRows,
+      });
     }
   };
 </script>

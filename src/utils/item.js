@@ -134,12 +134,19 @@ export function moveItem(active, items, cols, original, $commandKeyDown, detail)
   const EDGE_DISTANCE_THRESHOLD = 2;
   // Get current item from the breakpoint
   let item = getItem(active, cols);
+
+  let shadow = detail.shadow
   
   // Set position and size to the fixed fullscreen size
   if ($commandKeyDown) {
     item.y = 0;
     item.h = 10;
-  }
+    shadow.y = 0;
+    shadow.h = 10
+  } 
+
+
+  console.log(original)
 
   // Create matrix from the items except the active
   let matrix = makeMatrixFromItemsIgnore(items, [item.id], getRowsCount(items, cols), cols);
@@ -181,11 +188,6 @@ export function moveItem(active, items, cols, original, $commandKeyDown, detail)
 
   // No need to return closest edge info separately; it's now part of the items
   return items;
-}
-
-export function placeItems(items) {
-  let cols = 6
-  console.log("entered", items)
 }
 
 
@@ -442,67 +444,40 @@ export function specifyUndefinedRows(items, row, breakpoints) {
 
 
 
-export function moveItemOLD(active, items, cols, original, $commandKeyDown, detail) {
+export function placeItems(active, items, cols) {
   // Get current item from the breakpoint
-  
-  const item = getItem(active, cols);
-  
-  // Set position and size to the fixed fullscreen size
-  if($commandKeyDown) {
-    item.y = 0
-    item.h = 10
+  let item = active[cols]
+  let closestEdge = item.closestEdge;
+  let edgeProvider
+
+  if(closestEdge) {
+     edgeProvider = getItemById(closestEdge.elementId, items)[cols];
+     console.log("edgeprovider", edgeProvider)
+
+    if(closestEdge.type === 'left') {
+        item.x = edgeProvider.x - item.w,
+        item.y = edgeProvider.y, 
+        item.w = edgeProvider.w, 
+        item.h = edgeProvider.h
+    }
+
+    console.log("Position of Provider", {
+      x: edgeProvider.x, 
+      y: edgeProvider.y, 
+      w: edgeProvider.w, 
+      h: edgeProvider.h
+    })
+
+    console.log("Position of New Item", {
+      x: item.x, 
+      y: item.y, 
+      w: item.w, 
+      h: item.h
+    })
+
+    items = updateItem(items, active, item, cols);
   }
 
-  // Create matrix from the items expect the active
-  let matrix = makeMatrixFromItemsIgnore(items, [item.id], getRowsCount(items, cols), cols);
-  // Getting the ids of items under active Array<String>
-  const closeBlocks = findCloseBlocks(items, matrix, item);
-  // Getting the objects of items under active Array<Object>
-  let closeObj = findItemsById(closeBlocks, items);
-  // Getting whenever of these items is fixed
-  const fixed = closeObj.find((value) => value[cols].fixed);
-
-  // If found fixed, reset the active to its original position
-  if (fixed) return items;
-
-  // Update items
-  items = updateItem(items, active, item, cols);
-
-  // Create matrix of items expect close elements
-  matrix = makeMatrixFromItemsIgnore(items, closeBlocks, getRowsCount(items, cols), cols);
-
-  // Create temp vars
-  let tempItems = items;
-  let tempCloseBlocks = closeBlocks;
-
-  // Exclude resolved elements ids in array
-  let exclude = [];   
-
-  // Iterate over close elements under active item
-  closeObj.forEach((item) => {
-    console.log("CloseItems", closeObj)
-
-    let activeItem = getItemById(closeObj.id, closeObj);
-    console.log("Close Items HTML", activeItem)
-
-    item.closestCorner = true
-    
-
-    // Find position for element
-    // let position = findFreeSpaceForItem(matrix, item[cols]);
-    // Exclude item
-    // exclude.push(item.id);
-
-    // Assign the position to the element in the column
-    // tempItems = updateItem(tempItems, item, position, cols);
-
-    // Recreate ids of elements
-    // let getIgnoreItems = tempCloseBlocks.filter((value) => exclude.indexOf(value) === -1);
-
-    // Update matrix for next iteration
-    // matrix = makeMatrixFromItemsIgnore(tempItems, getIgnoreItems, getRowsCount(tempItems, cols), cols);
-  });
-
   // Return result
-  return tempItems;
+  return items;
 }

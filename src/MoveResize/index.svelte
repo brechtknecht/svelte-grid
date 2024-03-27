@@ -7,10 +7,6 @@
     -webkit-backface-visibility: hidden;
   }
 
-  .svlt-grid-item.corner {
-      background: red;
-    }
-
   .svlt-grid-resizer {
     user-select: none;
     width: 20px;
@@ -49,6 +45,10 @@
   .shadow-active {
     z-index: 2;
     transition: all 0.2s;
+  }
+
+  .shadow-active.hidden {
+    opacity: 0;
   }
 
   .svlt-grid-shadow {
@@ -94,7 +94,7 @@
   on:pointerdown={item && item.customDragger ? null : draggable && pointerdown}
   class="svlt-grid-item"
   class:svlt-grid-active={active || (trans && rect)}
-  class:corner={closestCorner}
+  class:dragging={active || trans}
   style="width: {active ? newSize.width : width}px; height:{active ? newSize.height : height}px; 
   {active ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px);top:${rect.top}px;left:${rect.left}px;` : trans ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px); position:absolute; transition: width 0.2s, height 0.2s;` : `transition: transform 0.2s, opacity 0.2s; transform: translate(${left}px, ${top}px); `} ">
   <slot movePointerDown={pointerdown} {resizePointerDown} />
@@ -104,8 +104,8 @@
 </div>
 
 <!-- {#if (active || trans) && !item.closestEdge} -->
-{#if (active || trans) && !item.closestEdge}
-  <div class="svlt-grid-shadow shadow-active" style="width: {shadow.w * xPerPx - gapX * 2}px; height: {shadow.h * yPerPx - gapY * 2}px; transform: translate({shadow.x * xPerPx + gapX}px, {shadow.y * yPerPx + gapY}px); " bind:this={shadowElement}>
+{#if (active || trans)}
+  <div class="svlt-grid-shadow shadow-active" class:hidden={item.closestEdge} style="width: {shadow.w * xPerPx - gapX * 2}px; height: {shadow.h * yPerPx - gapY * 2}px; transform: translate({shadow.x * xPerPx + gapX}px, {shadow.y * yPerPx + gapY}px); " bind:this={shadowElement}>
     <pre>{JSON.stringify(item, null, 2)}</pre>
   </div>
 {/if}
