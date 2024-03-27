@@ -53,11 +53,12 @@
 
   .svlt-grid-shadow {
     position: absolute;
-    background: red;
+    background: rgba(0,0,0,rgba(0, 0, 0, 0.4));
     will-change: transform;
-    background: pink;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    border: 1px dashed green;
+    border-radius: 8px;
   }
 </style>
 

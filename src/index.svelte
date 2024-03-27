@@ -167,6 +167,7 @@
         items = moveItemsAroundItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
       } else {
         items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items), $commandKeyDown, detail);
+        console.log("MOVED ITEMS", items)
       }
 
       if (detail.onUpdate) detail.onUpdate();

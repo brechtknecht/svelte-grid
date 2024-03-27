@@ -131,11 +131,14 @@ export function moveItemsAroundItem(active, items, cols, original) {
 
 
 export function moveItem(active, items, cols, original, $commandKeyDown, detail) {
+  const EDGE_DISTANCE_THRESHOLD = 2;
   // Get current item from the breakpoint
-  const item = getItem(active, cols);
+  let item = getItem(active, cols);
+
+  console.log("items", items)
   
   // Set position and size to the fixed fullscreen size
-  if($commandKeyDown) {
+  if ($commandKeyDown) {
     item.y = 0;
     item.h = 10;
   }
@@ -152,47 +155,87 @@ export function moveItem(active, items, cols, original, $commandKeyDown, detail)
   // Getting whether any of these items is fixed
   const fixed = closeObj.find((value) => value[cols].fixed);
 
-  // If found fixed, reset the active to its original position
-  if (fixed) return items;
+  // If found fixed, reset the active to its original position and all closest edges
+  if (fixed) {
+    resetAllClosestEdges(items);
+    return items;
+  }
+
+  // Create matrix of items except close elements
+  matrix = makeMatrixFromItemsIgnore(items, closeBlocks, getRowsCount(items, cols), cols);
 
   // Adapt closeObj to the expected structure by flattening it and removing the breakpoint
-  const adaptedCloseObj = closeObj.map(item => {
-    const key = cols.toString();
-    if(item[key]) {
-      return { ...item[key], id: item.id };
-    }
-    return null;
-  }).filter(item => item !== null);
+  const adaptedCloseObj = adaptObjStructure(closeObj, cols);
 
   // Then call findClosestEdge with the adapted closeObj
   const { closestEdgeType, closestEdgeElementId, closestEdgeDistance } = findClosestEdge(item, adaptedCloseObj);
 
-  if(closestEdgeType) { 
-    console.log(`Closest edge is ${closestEdgeType} of element ${closestEdgeElementId} at distance ${closestEdgeDistance}.`);
-  }
+  const extractedClosestEdge = extractClosestEdge(closestEdgeType, closestEdgeElementId, closestEdgeDistance, EDGE_DISTANCE_THRESHOLD, item)
 
-  // Inside your moveItem function, after finding the closest edge
-  if(closestEdgeElementId != null) { // Ensure there's a closest edge found
-    active.closestEdge = {
-        type: closestEdgeType,
-        elementId: closestEdgeElementId,
-        distance: closestEdgeDistance
-    };
-  } else {
-    resetClosestEdgeInfo(active); // Reset if no closest edge is found
-  }
+  // Update both the item with its new closest edge and the target item
+  items = updateItemWithClosestEdge(items, extractedClosestEdge, {
+    elementId: closestEdgeElementId,
+    type: closestEdgeType,
+  });
 
+  // Update items with the modified item
+  items = updateItem(items, active, item, cols);
 
-  // Update items based on the closest edge information if necessary
-  // This is where you might adjust the item's position based on the closest edge
-  // For simplicity, the example does not include this logic
-
-  // Your existing logic for updating and moving items can remain here
-  // Ensure that any adjustments based on the closest edge are applied before finalizing the item's new position
-
-  // Return updated items array
+  // No need to return closest edge info separately; it's now part of the items
   return items;
 }
+
+export function updateItemWithClosestEdge(items, updatedItemInfo, closestEdgeInfo) {
+  return items.map(item => {
+      item[6].closestEdgeInfo = null
+      item[6].providesClosestEdge = null
+      if (item.id === updatedItemInfo.id) {
+          // Update the moving item with the closest edge information.
+          return { 
+              ...item, 
+              [6]: { ...item[6], closestEdge: updatedItemInfo.closestEdge } // Update closest edge info for the moving item.
+          };
+      }
+
+      if (item.id === closestEdgeInfo.elementId) {
+          // Update the target item to indicate it provides a closest edge.
+          return { 
+              ...item, 
+              [6]: { ...item[6], providesClosestEdge: {
+                  from: updatedItemInfo.id,
+                  edgeType: closestEdgeInfo.type,
+              }} 
+          };
+      }
+
+      return item; // Return all other items unchanged.
+  });
+}
+
+
+
+
+
+export function extractClosestEdge(closestEdgeType, closestEdgeElementId, closestEdgeDistance, EDGE_DISTANCE_THRESHOLD, item) {
+  // If closest edge information is found and within threshold, update the item directly
+  let tempItem = item;
+  if (closestEdgeType && closestEdgeDistance <= EDGE_DISTANCE_THRESHOLD) {
+    console.log(`Closest Edge: ${closestEdgeType}, Element ID: ${closestEdgeElementId}, Distance: ${closestEdgeDistance}`);
+    // Update the item's closest edge info directly
+    tempItem.closestEdge = {
+      type: closestEdgeType,
+      elementId: closestEdgeElementId,
+      distance: closestEdgeDistance
+    };
+  } else {
+    // Optionally reset closest edge info for all items if no relevant edge is found
+    tempItem.closestEdge = null;
+    tempItem.providesClosestEdge = null
+  }
+
+  return tempItem
+}
+
 
 
 export function findClosestEdge(draggedItem, closeObj) {
@@ -229,15 +272,16 @@ export function findClosestEdge(draggedItem, closeObj) {
   return { closestEdgeType, closestEdgeElementId, closestEdgeDistance };
 }
 
-export function resetClosestEdgeInfo(item) {
-  if(item.closestEdge) {
-      item.closestEdge = {
-          type: null,
-          elementId: null,
-          distance: Infinity
-      };
-  }
+export function resetAllClosestEdges(items) {
+  // Iterate over each item and reset its closestEdge info
+  items.forEach(item => {
+      if(item.closestEdge) {
+          item.closestEdge = null;
+          item.providesClosestEdge = null
+      }
+  });
 }
+
 
 
 // Helper function
@@ -253,6 +297,17 @@ export function normalize(items, col) {
 
   return result;
 }
+
+export function adaptObjStructure(obj, cols) {
+  return obj.map(item => {
+    const key = cols.toString();
+    if(item[key]) {
+      return { ...item[key], id: item.id };
+    }
+    return null;
+  }).filter(item => item !== null);
+}
+
 
 // Helper function
 export function adjust(items, col) {
