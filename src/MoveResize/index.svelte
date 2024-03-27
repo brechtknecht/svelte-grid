@@ -64,9 +64,28 @@
   .svlt-grid-item-top-edge {
     position: absolute;
     width: 100%;
-    height: 3px;
-    background: green;
+    height: 100%;
     z-index: 1;
+  }
+
+  /* Additional styles for edge highlights */
+  .edge-highlight {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Ensure the overlay does not interfere with interaction */
+  }
+  .top-edge {
+    border-top: 2px solid red;
+  }
+  .bottom-edge {
+    border-bottom: 2px solid red;
+  }
+  .left-edge {
+    border-left: 2px solid red;
+  }
+  .right-edge {
+    border-right: 2px solid red;
   }
 </style>
 
@@ -84,8 +103,11 @@
   {/if}
 </div>
 
-{#if active || trans}
-  <div class="svlt-grid-shadow shadow-active" style="width: {shadow.w * xPerPx - gapX * 2}px; height: {shadow.h * yPerPx - gapY * 2}px; transform: translate({shadow.x * xPerPx + gapX}px, {shadow.y * yPerPx + gapY}px); " bind:this={shadowElement} />
+<!-- {#if (active || trans) && !item.closestEdge} -->
+{#if (active || trans) && !item.closestEdge}
+  <div class="svlt-grid-shadow shadow-active" style="width: {shadow.w * xPerPx - gapX * 2}px; height: {shadow.h * yPerPx - gapY * 2}px; transform: translate({shadow.x * xPerPx + gapX}px, {shadow.y * yPerPx + gapY}px); " bind:this={shadowElement}>
+    <pre>{JSON.stringify(item, null, 2)}</pre>
+  </div>
 {/if}
 
 {#if item && item.providesClosestEdge}
@@ -97,7 +119,21 @@
       `transition: transform 0.2s, opacity 0.2s; transform: translate(${left}px, ${top}px);`}
   ">
     <!-- Displaying the entire item object -->
-    <pre>{JSON.stringify(item, null, 2)}</pre>
+    <!-- <pre>{JSON.stringify(item, null, 2)}</pre> -->
+    
+    <!-- Highlighting edges based on providesClosestEdge -->
+    {#if item.providesClosestEdge.edgeType === 'top'}
+      <div class="edge-highlight top-edge" style="top: {-gapY}px;"></div> <!-- Adjust top offset -->
+    {/if}
+    {#if item.providesClosestEdge.edgeType === 'bottom'}
+      <div class="edge-highlight bottom-edge" style="bottom: {-gapY}px;"></div> <!-- Adjust bottom offset -->
+    {/if}
+    {#if item.providesClosestEdge.edgeType === 'left'}
+      <div class="edge-highlight left-edge" style="left: {-gapX}px;"></div> <!-- Adjust left offset -->
+    {/if}
+    {#if item.providesClosestEdge.edgeType === 'right'}
+      <div class="edge-highlight right-edge" style="right: {-gapX}px;"></div> <!-- Adjust right offset -->
+    {/if}
   </div>
 {/if}
 
