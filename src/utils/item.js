@@ -1,4 +1,4 @@
-import { makeMatrix, makeMatrixFromItemsIgnore, findCloseBlocks, findItemsById, makeMatrixFromItems } from "./matrix.js";
+import { makeMatrix, makeMatrixFromItemsIgnore, makeMatrixFromItemsForOverlap, findCloseBlocks, findItemsById, makeMatrixFromItems } from "./matrix.js";
 import { getColsCount, getRowsCount } from "./other.js";
 
 export function getItemById(id, items) {
@@ -445,10 +445,7 @@ export function specifyUndefinedRows(items, row, breakpoints) {
 }
 
 
-
-
-
-export function placeItems(active, items, cols) {
+export function placeItems(active, items, cols, minHeight = 3) {
   // Get current item from the breakpoint
   let item = active[cols];
   let closestEdge = item.closestEdge;
@@ -483,16 +480,105 @@ export function placeItems(active, items, cols) {
               console.log('Unknown edge type:', closestEdge.type);
       }
 
+      // DO THE HEIGHT CHECKS HERE AND MANIPULATE AS NESSECARY
+      if (closestEdge.type === 'top' || closestEdge.type === 'bottom') {
+          // Calculate the total available height
+          let totalHeight = item.h + edgeProvider.h;
+          
+          if (totalHeight > 6) {
+              // If exceeding max height, adjust both heights
+              console.log("Exceeded max Height")
+              let adjustedHeight = Math.max(minHeight, 6 / 2);
+              item.h = adjustedHeight;
+              edgeProvider.h = adjustedHeight;
+              // Additional logic to update edgeProvider's position if needed
+              if (closestEdge.type === 'top') {
+                  edgeProvider.y = item.y + item.h; // Move edgeProvider down
+              } else {
+                  item.y = edgeProvider.y + edgeProvider.h; // Adjust item's y to maintain position
+              }
+          }
+      }
 
-      
+      let itemsBeforePush = items
+
+      items = pushOverlappingItems(items, cols, edgeProvider, getItemById(closestEdge.elementId, items).id);
+
+      // After pushing overlapping items, we log the difference
+      const diff = items.map((item, index) => {
+        if (item.x !== itemsBeforePush[index].x || item.y !== itemsBeforePush[index].y) {
+          return {
+            id: item.id,
+            from: { x: itemsBeforePush[index].x, y: itemsBeforePush[index].y },
+            to: { x: item.x, y: item.y }
+          };
+        } else {
+          return null;
+        }
+      }).filter(item => item !== null);
+
+      console.log('Differences after pushOverlappingItems:', diff);
+
       // Update the item in the items array
       items = updateItem(items, active, item, cols);
       
-      items = resetAllClosestEdges(items, cols)
-
-      console.log("RETURNED ITEMS:", items)
+      // Reset all closest edges
+      items = resetAllClosestEdges(items, cols);
   }
-
-  // Return the updated items array
   return items;
 }
+
+function pushOverlappingItems(items, cols, edgeProvider, edgeProviderId) {
+  // Iterate through all items to find potential overlaps with the edgeProvider
+  items.forEach(item => {
+      // Access the properties of the current item for the specific column (cols)
+      let currentItem = item[cols];
+      // Ensure the current item is not the edgeProvider itself
+      if (currentItem && item.id !== edgeProviderId) {
+          // Use the collision detection function to check for overlaps
+          const overlappingItems = checkForOverlaps(items );
+          console.log('Overlapping Items:', overlappingItems);
+      }
+  });
+
+  console.log("Completed checking for overlaps.");
+  return items;
+}
+
+function checkForOverlaps(items) {
+  // This will store pairs of item IDs that overlap
+  let overlappingPairs = [];
+
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      let item1 = items[i]['6'];
+      let item2 = items[j]['6'];
+
+      if (isOverlapping(item1, item2)) {
+        overlappingPairs.push({item1: items[i].id, item2: items[j].id});
+      }
+    }
+  }
+
+  return overlappingPairs;
+}
+
+function isOverlapping(item1, item2) {
+  if (item1.x + item1.w <= item2.x || item2.x + item2.w <= item1.x) {
+    return false;
+  }
+  
+  if (item1.y + item1.h <= item2.y || item2.y + item2.h <= item1.y) {
+    return false;
+  }
+  
+  return true;
+}
+
+
+
+
+
+
+
+

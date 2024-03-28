@@ -21,6 +21,22 @@ export function makeMatrixFromItems(items, _row, _col) {
   return matrix;
 }
 
+export function makeMatrixFromItemsForOverlap(items, rows, cols) {
+  // Initialize an empty matrix
+  let matrix = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+  // Populate the matrix with item IDs
+  items.forEach(item => {
+    for (let y = item.y; y < item.y + item.h; y++) {
+      for (let x = item.x; x < item.x + item.w; x++) {
+        matrix[y][x] = item.id; // Place the item's ID in the matrix
+      }
+    }
+  });
+
+  return matrix;
+}
+
 export function findCloseBlocks(items, matrix, curObject) {
   const { h, x, y } = curObject;
 
