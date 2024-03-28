@@ -130,15 +130,15 @@ export function moveItemsAroundItem(active, items, cols, original) {
 
 
 
-export function moveItem(active, items, cols, original, $commandKeyDown, detail) {
-  const EDGE_DISTANCE_THRESHOLD = 2;
+export function moveItem(active, items, cols, original, $altKeyDown, detail) {
+  const EDGE_DISTANCE_THRESHOLD = 4;
   // Get current item from the breakpoint
   let item = getItem(active, cols);
 
   let shadow = detail.shadow
   
   // Set position and size to the fixed fullscreen size
-  if ($commandKeyDown) {
+  if ($altKeyDown) {
     item.y = 0;
     item.h = 10;
     shadow.y = 0;
@@ -445,7 +445,7 @@ export function specifyUndefinedRows(items, row, breakpoints) {
 }
 
 
-export function placeItems(active, items, cols, minHeight = 3) {
+export function placeItems(active, items, cols, $commandKeyDown, minHeight = 3) {
   // Get current item from the breakpoint
   let item = active[cols];
   let closestEdge = item.closestEdge;
@@ -459,12 +459,16 @@ export function placeItems(active, items, cols, minHeight = 3) {
           case 'left':
               item.x = edgeProvider.x - item.w;
               item.y = edgeProvider.y;
-              item.h = edgeProvider.h; // Adjust height to match edge provider
+              if($commandKeyDown) {
+                item.h = edgeProvider.h; // Adjust height to match edge provider
+              }
               break;
           case 'right':
               item.x = edgeProvider.x + edgeProvider.w;
               item.y = edgeProvider.y;
-              item.h = edgeProvider.h; // Adjust height to match edge provider
+              if($commandKeyDown) {
+                item.h = edgeProvider.h; // Adjust height to match edge provider
+              }
               break;
           case 'top':
               item.x = edgeProvider.x;
@@ -502,7 +506,7 @@ export function placeItems(active, items, cols, minHeight = 3) {
 
       let itemsBeforePush = items
 
-      items = pushOverlappingItems(items, cols, edgeProvider, getItemById(closestEdge.elementId, items).id);
+      items = pushOverlappingItems(items, cols, closestEdge, item);
 
       // After pushing overlapping items, we log the difference
       const diff = items.map((item, index) => {
@@ -528,22 +532,79 @@ export function placeItems(active, items, cols, minHeight = 3) {
   return items;
 }
 
-function pushOverlappingItems(items, cols, edgeProvider, edgeProviderId) {
-  // Iterate through all items to find potential overlaps with the edgeProvider
-  items.forEach(item => {
-      // Access the properties of the current item for the specific column (cols)
-      let currentItem = item[cols];
-      // Ensure the current item is not the edgeProvider itself
-      if (currentItem && item.id !== edgeProviderId) {
-          // Use the collision detection function to check for overlaps
-          const overlappingItems = checkForOverlaps(items );
-          console.log('Overlapping Items:', overlappingItems);
-      }
-  });
+function pushOverlappingItems(items, cols, closestEdge, droppedItem) {
+  const MAX_LOOPS = 10
+  // Initial sorting to ensure items are processed in order.
+  items.sort((a, b) => a[cols].x - b[cols].x);
 
-  console.log("Completed checking for overlaps.");
+  let overlaps = true;
+  let loop = 0
+
+
+  while (overlaps && loop < MAX_LOOPS){
+    loop++
+    const overlappingPairs = checkForOverlaps(items);
+    console.log("overlapping pairs", overlappingPairs)
+    console.log("droppeditem", droppedItem)
+      if (overlappingPairs.length === 0) {
+          overlaps = false;
+          continue;
+      }
+
+      // Processing overlaps based on the minimal adjustment principle.
+      overlappingPairs.forEach(({item1: item1Id, item2: item2Id}) => {
+          const index1 = items.findIndex(item => item.id === item1Id);
+          const index2 = items.findIndex(item => item.id === item2Id);
+          const item1 = items[index1][cols];
+          const item2 = items[index2][cols];
+
+          // Determine overlap size
+          let overlapSize = (item1.x + item1.w) - item2.x;
+          console.log("overlap size", overlapSize)
+
+          // Check direction of item movement to decide which way to push
+          if (closestEdge.type === 'right') {
+              // item1 was originally to the left of item2, push item2 right
+              pushRight(items, index2, overlapSize, cols, droppedItem);
+          } else if(closestEdge.type === 'left') {
+              console.log("moving to left")
+              // item1 was originally to the right of item2, push item1 left
+              pushLeft(items, index1, overlapSize, cols, droppedItem);
+          }
+      });
+
+      // Re-sort items after adjustments
+      items.sort((a, b) => a[cols].x - b[cols].x);
+  }
+
   return items;
 }
+
+function pushRight(items, startIndex, distance, cols, droppedItem) {
+  console.log("pushing right", {items, startIndex, distance})
+  for (let i = startIndex; i < items.length; i++) {
+      if(items[i][cols].id === droppedItem.id) {
+        console.log("dropped ID detected")
+        i--
+        items[i][cols].x += distance;
+        return
+      }
+      items[i][cols].x += distance;
+  }
+}
+
+function pushLeft(items, startIndex, distance, cols, droppedItem) {
+  for (let i = startIndex; i >= 0; i--) {
+    if(items[i][cols].id === droppedItem.id) {
+      console.log("dropped ID detected")
+      i++
+      items[i][cols].x -= distance;
+      return
+    }
+      items[i][cols].x -= distance;
+  }
+}
+
 
 function checkForOverlaps(items) {
   // This will store pairs of item IDs that overlap
@@ -574,8 +635,6 @@ function isOverlapping(item1, item2) {
   
   return true;
 }
-
-
 
 
 

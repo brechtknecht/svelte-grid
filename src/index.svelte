@@ -81,11 +81,18 @@
 
   let container;
   const commandKeyDown = writable(false)
+  const altKeyDown = writable(false)
 
   $: if ($commandKeyDown) {
     console.log('Command key is down');
   } else {
     console.log('Command key is not down');
+  }
+
+  $: if ($altKeyDown) {
+    console.log('alt key is down');
+  } else {
+    console.log('alt key is not down');
   }
 
 
@@ -115,10 +122,12 @@
 
   const handleKeyDown = (e) => {
     commandKeyDown.set(e.metaKey)
+    altKeyDown.set(e.altKey)
   }
 
   const handleKeyUp = (e) => {
     commandKeyDown.set(false)
+    altKeyDown.set(false)
   }
 
   onMount(() => {
@@ -168,7 +177,7 @@
       if (fillSpace) {
         items = moveItemsAroundItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
       } else {
-        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items), $commandKeyDown, detail);
+        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items), $altKeyDown, detail);
         console.log("MOVED ITEMS", items)
       }
 
@@ -189,7 +198,7 @@
       throttleMatrix({ detail });
     } else {
       let activeItem = getItemById(detail.id, items);
-      items = placeItems(activeItem, items, 6)
+      items = placeItems(activeItem, items, 6, $commandKeyDown)
 
       console.log("NEWITEMS", items)
 
