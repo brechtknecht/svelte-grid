@@ -461,6 +461,7 @@ export function placeItems(active, items, cols, $commandKeyDown, minHeight = 3) 
               item.y = edgeProvider.y;
               if($commandKeyDown) {
                 item.h = edgeProvider.h; // Adjust height to match edge provider
+                item.w = edgeProvider.w; // Adjust width to match edge provider
               }
               break;
           case 'right':
@@ -468,6 +469,7 @@ export function placeItems(active, items, cols, $commandKeyDown, minHeight = 3) 
               item.y = edgeProvider.y;
               if($commandKeyDown) {
                 item.h = edgeProvider.h; // Adjust height to match edge provider
+                item.w = edgeProvider.w; // Adjust width to match edge provider
               }
               break;
           case 'top':
