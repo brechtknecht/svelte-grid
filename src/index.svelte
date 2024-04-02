@@ -9,7 +9,7 @@
   }
 </style>
 
-<svelte:window on:keydown|preventDefault={handleKeyDown} on:keyup|preventDefault={handleKeyUp} />
+<svelte:window on:keydown|preventDefault={handleKeyDown} on:keyup|preventDefault={handleKeyUp} on:mousemove={handleMouseMove}/>
 
 <div class="svlt-grid-container" style:width={"8000px"} bind:this={container}>
   {#if xPerPx || !fastStart}
@@ -77,6 +77,8 @@
   export let scroller = undefined;
   export let sensor = 20;
 
+  const cursor = writable({x: 0, y: 0})
+
   let getComputedRows;
 
   let container;
@@ -111,7 +113,7 @@
   };
 
   const onResize = throttle(() => {
-    items = specifyUndefinedRows(items, getComputedRows, rows); // Adjust for horizontal layout
+    // items = specifyUndefinedRows(items, getComputedRows, rows); // Adjust for horizontal layout
     dispatch("resize", {
       rows: getComputedRows,
       xPerPx,
@@ -128,6 +130,10 @@
   const handleKeyUp = (e) => {
     commandKeyDown.set(false)
     altKeyDown.set(false)
+  }
+
+  const handleMouseMove = (e) => {
+    cursor.set({x: e.clientX, y: e.clientY})
   }
 
   onMount(() => {
@@ -173,11 +179,10 @@
           ...detail.shadow,
         },
       };
-
       if (fillSpace) {
         items = moveItemsAroundItem(activeItem, items, getComputedRows, getItemById(detail.id, items));
       } else {
-        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items), $altKeyDown, detail);
+        items = moveItem(activeItem, items, getComputedRows, getItemById(detail.id, items), $altKeyDown, detail, $cursor);
         console.log("MOVED ITEMS", items)
       }
 
@@ -198,7 +203,7 @@
       throttleMatrix({ detail });
     } else {
       let activeItem = getItemById(detail.id, items);
-      items = placeItems(activeItem, items, 6, $commandKeyDown)
+      items = placeItems(activeItem, items, 20, $commandKeyDown)
 
       console.log("NEWITEMS", items)
 

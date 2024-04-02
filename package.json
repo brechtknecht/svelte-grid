@@ -1,5 +1,5 @@
 {
-  "name": "svelte-grid",
+  "name": "svelte-grid-custom",
   "version": "5.1.2",
   "description": "A responsive, draggable and resizable grid layout, for Svelte.",
   "svelte": "src/index.svelte",

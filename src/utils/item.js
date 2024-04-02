@@ -1,4 +1,4 @@
-import { makeMatrix, makeMatrixFromItemsIgnore, makeMatrixFromItemsForOverlap, findCloseBlocks, findItemsById, makeMatrixFromItems } from "./matrix.js";
+import { makeMatrix, makeMatrixFromItemsIgnore, findCloseBlocks, findItemsById, makeMatrixFromItems } from "./matrix.js";
 import { getColsCount, getRowsCount } from "./other.js";
 
 export function getItemById(id, items) {
@@ -130,8 +130,8 @@ export function moveItemsAroundItem(active, items, cols, original) {
 
 
 
-export function moveItem(active, items, cols, original, $altKeyDown, detail) {
-  const EDGE_DISTANCE_THRESHOLD = 4;
+export function moveItem(active, items, cols, original, $altKeyDown, detail, cursor) {
+  const EDGE_DISTANCE_THRESHOLD = 5;
   // Get current item from the breakpoint
   let item = getItem(active, cols);
 
@@ -144,9 +144,6 @@ export function moveItem(active, items, cols, original, $altKeyDown, detail) {
     shadow.y = 0;
     shadow.h = 10
   } 
-
-
-  console.log(original)
 
   // Create matrix from the items except the active
   let matrix = makeMatrixFromItemsIgnore(items, [item.id], getRowsCount(items, cols), cols);
@@ -173,7 +170,7 @@ export function moveItem(active, items, cols, original, $altKeyDown, detail) {
   const adaptedCloseObj = adaptObjStructure(closeObj, cols);
 
   // Then call findClosestEdge with the adapted closeObj
-  const { closestEdgeType, closestEdgeElementId, closestEdgeDistance } = findClosestEdge(item, adaptedCloseObj);
+  const { closestEdgeType, closestEdgeElementId, closestEdgeDistance } = findClosestEdge(item, adaptedCloseObj, cursor);
 
   const extractedClosestEdge = extractClosestEdge(closestEdgeType, closestEdgeElementId, closestEdgeDistance, EDGE_DISTANCE_THRESHOLD, item)
 
@@ -193,13 +190,13 @@ export function moveItem(active, items, cols, original, $altKeyDown, detail) {
 
 export function updateItemWithClosestEdge(items, updatedItemInfo, closestEdgeInfo) {
   return items.map(item => {
-      item[6].closestEdgeInfo = null
-      item[6].providesClosestEdge = null
+      item[20].closestEdgeInfo = null
+      item[20].providesClosestEdge = null
       if (item.id === updatedItemInfo.id) {
           // Update the moving item with the closest edge information.
           return { 
               ...item, 
-              [6]: { ...item[6], closestEdge: updatedItemInfo.closestEdge } // Update closest edge info for the moving item.
+              [20]: { ...item[20], closestEdge: updatedItemInfo.closestEdge } // Update closest edge info for the moving item.
           };
       }
 
@@ -207,7 +204,7 @@ export function updateItemWithClosestEdge(items, updatedItemInfo, closestEdgeInf
           // Update the target item to indicate it provides a closest edge.
           return { 
               ...item, 
-              [6]: { ...item[6], providesClosestEdge: {
+              [20]: { ...item[20], providesClosestEdge: {
                   from: updatedItemInfo.id,
                   edgeType: closestEdgeInfo.type,
               }} 
@@ -244,7 +241,8 @@ export function extractClosestEdge(closestEdgeType, closestEdgeElementId, closes
 
 
 
-export function findClosestEdge(draggedItem, closeObj) {
+export function findClosestEdge(draggedItem, closeObj, cursor) {
+  console.log("DETAIIHL: ", cursor)
   let closestEdgeDistance = Infinity;
   let closestEdgeType = null;
   let closestEdgeElementId = null;
@@ -307,6 +305,20 @@ export function normalize(items, col) {
 
   return result;
 }
+
+function normalizeNegativeCoords(items, cols) {
+  // Find the item with the most negative x value.
+  const mostNegativeX = items.reduce((minX, item) => Math.min(minX, item[cols].x), 0);
+
+  // If the most negative x value is less than 0, we need to shift all items to the right.
+  if (mostNegativeX < 0) {
+    const shiftDistance = Math.abs(mostNegativeX);
+    items.forEach(item => {
+      item[cols].x += shiftDistance; // Shift each item to the right.
+    });
+  }
+}
+
 
 export function adaptObjStructure(obj, cols) {
   return obj.map(item => {
@@ -459,17 +471,17 @@ export function placeItems(active, items, cols, $commandKeyDown, minHeight = 3) 
           case 'left':
               item.x = edgeProvider.x - item.w;
               item.y = edgeProvider.y;
-              if($commandKeyDown) {
+              if(!$commandKeyDown) {
                 item.h = edgeProvider.h; // Adjust height to match edge provider
-                item.w = edgeProvider.w; // Adjust width to match edge provider
+                // item.w = edgeProvider.w; // Adjust width to match edge provider
               }
               break;
           case 'right':
               item.x = edgeProvider.x + edgeProvider.w;
               item.y = edgeProvider.y;
-              if($commandKeyDown) {
+              if(!$commandKeyDown) {
                 item.h = edgeProvider.h; // Adjust height to match edge provider
-                item.w = edgeProvider.w; // Adjust width to match edge provider
+                // item.w = edgeProvider.w; // Adjust width to match edge provider
               }
               break;
           case 'top':
@@ -574,6 +586,8 @@ function pushOverlappingItems(items, cols, closestEdge, droppedItem) {
               pushLeft(items, index1, overlapSize, cols, droppedItem);
           }
       });
+      
+      normalizeNegativeCoords(items, cols);
 
       // Re-sort items after adjustments
       items.sort((a, b) => a[cols].x - b[cols].x);
@@ -614,8 +628,8 @@ function checkForOverlaps(items) {
 
   for (let i = 0; i < items.length; i++) {
     for (let j = i + 1; j < items.length; j++) {
-      let item1 = items[i]['6'];
-      let item2 = items[j]['6'];
+      let item1 = items[i]['20'];
+      let item2 = items[j]['20'];
 
       if (isOverlapping(item1, item2)) {
         overlappingPairs.push({item1: items[i].id, item2: items[j].id});
