@@ -539,6 +539,9 @@ export function placeItems(active, items, cols, $commandKeyDown, minHeight = 3) 
 
       // Update the item in the items array
       items = updateItem(items, active, item, cols);
+
+      items = closeXGaps(items)
+      console.log("AFTER REMOVING GAPS", items)
       
       // Reset all closest edges
       items = resetAllClosestEdges(items, cols);
@@ -652,34 +655,40 @@ function isOverlapping(item1, item2) {
   return true;
 }
 
-export function eliminateXGaps(items) {
-  // Clone items to avoid mutating the original array
-  const clonedItems = JSON.parse(JSON.stringify(items));
 
-  // Sort items by their y-position first, and then by their x-position
-  clonedItems.sort((a, b) => a.y - b.y || a.x - b.x);
+function closeXGaps(items) {
+  // Clone and sort items by their x position to process them in order
+  const sortedItems = [...items].sort((a, b) => a['20'].x - b['20'].x);
 
-  // Object to keep track of the rightmost edge of items in each row
-  const rowEdges = {};
+  let expectedX = 0; // Initialize the expected X position for the first item
 
-  // Process each item to eliminate x-gaps
-  const processedItems = clonedItems.map(item => {
-    // Define the key for rowEdges based on item's y-position
-    const rowKey = `row-${item.y}`;
+  // Adjust the position of items based on expectedX
+  const adjustedItems = sortedItems.map((item, index) => {
+      const currentItem = item['20'];
 
-    // If this row has been processed before, set the item's x to the rightmost edge + 1
-    // Otherwise, use the item's current x
-    const newX = rowEdges[rowKey] !== undefined ? rowEdges[rowKey] + 1 : item.x;
+      // Only adjust the item's x position if it's to the right of where it's expected to be
+      if (index === 0 || currentItem.x > expectedX) {
+          const newPosition = { ...currentItem, x: expectedX };
 
-    // Update the rightmost edge for this row
-    rowEdges[rowKey] = newX + item.w - 1;
+          // Update the expectedX for the next item based on the new position and width
+          expectedX += newPosition.w;
 
-    // Return the item with its x updated, if necessary
-    return { ...item, x: newX };
+          return { ...item, '20': newPosition };
+      } else {
+          // If the item is already at or before the expected position, don't move it
+          // But update expectedX based on its current position and width
+          expectedX = currentItem.x + currentItem.w;
+      }
+
+      // Return the item without modification if it doesn't need to be moved
+      return item;
   });
 
-  return processedItems;
+  return adjustedItems;
 }
+
+
+
 
 
 

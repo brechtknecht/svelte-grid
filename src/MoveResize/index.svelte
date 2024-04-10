@@ -95,8 +95,10 @@
   class="svlt-grid-item"
   class:svlt-grid-active={active || (trans && rect)}
   class:dragging={active || trans}
-  style="width: {active ? newSize.width : width}px; height:{active ? newSize.height : height}px; 
-  {active ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px);top:${rect.top}px;left:${rect.left}px;` : trans ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px); position:absolute; transition: width 0.2s, height 0.2s;` : `transition: transform 0.2s, opacity 0.2s; transform: translate(${left}px, ${top}px); `} ">
+  style="width: {active ? newSize.width : width}px; height:{active ? newSize.height : height}px;
+    {active ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px) scale(${activeScale});top:${rect.top}px;left:${rect.left}px;` : 
+    trans ? `transform: translate(${cordDiff.x}px, ${cordDiff.y}px) scale(${activeScale}); position:absolute; transition: width 0.2s, height 0.2s;` : 
+    `transition: transform 0.2s, opacity 0.2s; transform: translate(${left}px, ${top}px) scale(${activeScale}); `}">
   <slot movePointerDown={pointerdown} {resizePointerDown} />
   {#if resizable && !item.customResizer}
     <div class="svlt-grid-resizer" on:pointerdown={resizePointerDown} />
@@ -192,6 +194,10 @@
 
   let anima;
 
+  let activeScale = 1;
+  const dragScale = 0.33;
+  const defaultScale = 1;
+
   const inActivate = () => {
     const shadowBound = shadowElement.getBoundingClientRect();
     const xdragBound = rect.left + cordDiff.x;
@@ -261,6 +267,7 @@
     active = true;
     trans = false;
     _scrollLeft = scrollElement.scrollLeft;
+    activeScale = dragScale
 
     window.addEventListener("pointermove", pointermove);
     window.addEventListener("pointerup", pointerup);
@@ -335,6 +342,8 @@
   const pointerup = (e) => {
     stopAutoscroll();
 
+    activeScale = defaultScale;
+
     window.removeEventListener("pointerdown", pointerdown);
     window.removeEventListener("pointermove", pointermove);
     window.removeEventListener("pointerup", pointerup);
@@ -360,6 +369,7 @@
     active = true;
     trans = false;
     shadow = { x: item.x, y: item.y, w: item.w, h: item.h };
+    activeScale = defaultScale
 
     containerFrame = getContainerFrame(container);
     scrollElement = getScroller(container);
@@ -392,6 +402,8 @@
 
   const resizePointerUp = (e) => {
     e.stopPropagation();
+
+    activeScale = defaultScale
 
     repaint(inActivate, true);
 

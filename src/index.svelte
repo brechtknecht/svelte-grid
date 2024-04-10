@@ -5,7 +5,7 @@
     display: flex; /* Ensure items are laid out vertically */
     flex-direction: column; /* Align items in a column for horizontal scrolling */
     flex-wrap: nowrap; /* Prevent items from wrapping to the next row */
-    height: 100vh;
+    height: 95vh;
   }
 </style>
 
