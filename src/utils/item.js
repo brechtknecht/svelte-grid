@@ -503,10 +503,10 @@ export function placeItems(active, items, cols, $commandKeyDown, minHeight = 3) 
           // Calculate the total available height
           let totalHeight = item.h + edgeProvider.h;
           
-          if (totalHeight > 6) {
+          if (totalHeight > 20) {
               // If exceeding max height, adjust both heights
               console.log("Exceeded max Height")
-              let adjustedHeight = Math.max(minHeight, 6 / 2);
+              let adjustedHeight = Math.max(minHeight, 20 / 2);
               item.h = adjustedHeight;
               edgeProvider.h = adjustedHeight;
               // Additional logic to update edgeProvider's position if needed
@@ -650,6 +650,35 @@ function isOverlapping(item1, item2) {
   }
   
   return true;
+}
+
+export function eliminateXGaps(items) {
+  // Clone items to avoid mutating the original array
+  const clonedItems = JSON.parse(JSON.stringify(items));
+
+  // Sort items by their y-position first, and then by their x-position
+  clonedItems.sort((a, b) => a.y - b.y || a.x - b.x);
+
+  // Object to keep track of the rightmost edge of items in each row
+  const rowEdges = {};
+
+  // Process each item to eliminate x-gaps
+  const processedItems = clonedItems.map(item => {
+    // Define the key for rowEdges based on item's y-position
+    const rowKey = `row-${item.y}`;
+
+    // If this row has been processed before, set the item's x to the rightmost edge + 1
+    // Otherwise, use the item's current x
+    const newX = rowEdges[rowKey] !== undefined ? rowEdges[rowKey] + 1 : item.x;
+
+    // Update the rightmost edge for this row
+    rowEdges[rowKey] = newX + item.w - 1;
+
+    // Return the item with its x updated, if necessary
+    return { ...item, x: newX };
+  });
+
+  return processedItems;
 }
 
 
